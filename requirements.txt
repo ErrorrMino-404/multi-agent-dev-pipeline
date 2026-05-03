@@ -1,0 +1,5 @@
+# Dipendenze Python per l'orchestratore.
+# Tutte opzionali: l'orchestratore funziona con solo la stdlib.
+
+# Per supportare config YAML (oltre a JSON)
+PyYAML>=6.0

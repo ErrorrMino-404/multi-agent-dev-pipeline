@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allowedTools": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash(psql *)",
+      "Bash(./gradlew *)",
+      "Bash(pytest *)",
+      "Bash(npm *)",
+      "Bash(node *)",
+      "Bash(pip-audit *)",
+      "Bash(safety *)",
+      "Bash(mkdir *)",
+      "Bash(mv *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(ls *)"
+    ],
+    "deny": [
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(**/secrets/**)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Write(/etc/**)",
+      "Write(~/.ssh/**)",
+      "Write(.env)",
+      "Write(.env.*)",
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Bash(curl * | sh)",
+      "Bash(wget * | sh)"
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_MAX_OUTPUT_TOKENS": "16384",
+    "BASH_DEFAULT_TIMEOUT_MS": "60000"
+  }
+}

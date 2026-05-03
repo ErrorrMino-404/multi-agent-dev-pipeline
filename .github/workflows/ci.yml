@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint Python and Bash
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dev dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff pyyaml
+
+      - name: Lint with ruff
+        run: |
+          ruff check orchestrate.py contract_compressor.py
+
+      - name: Compile Python check
+        run: |
+          python -m py_compile orchestrate.py
+          python -m py_compile contract_compressor.py
+
+      - name: Shellcheck setup.sh
+        uses: ludeeus/action-shellcheck@master
+        with:
+          severity: warning
+          scandir: '.'
+          additional_files: 'setup.sh'
+
+  validate-agents:
+    name: Validate agent files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check all agent files exist
+        run: |
+          required_agents=(
+            "orchestrator.md"
+            "agent_db.md"
+            "agent_be.md"
+            "agent_fe.md"
+            "agent_review_static.md"
+            "agent_test_writer.md"
+            "agent_test_runner.md"
+            "agent_security.md"
+            "agent_comments.md"
+            "agent_wiki.md"
+            "agent_memory.md"
+          )
+          missing=0
+          for agent in "${required_agents[@]}"; do
+            if [[ ! -f "agents/$agent" ]]; then
+              echo "::error::Missing required agent file: agents/$agent"
+              missing=$((missing + 1))
+            fi
+          done
+          if [[ $missing -gt 0 ]]; then
+            exit 1
+          fi
+          echo "All ${#required_agents[@]} agent files present"
+
+      - name: Validate agent files have required sections
+        run: |
+          for agent in agents/*.md; do
+            for section in "## Ruolo" "## Input che leggi" "## Output che produci"; do
+              if ! grep -q "$section" "$agent"; then
+                echo "::warning::$agent manca la sezione: $section"
+              fi
+            done
+          done
+
+  smoke-test:
+    name: Smoke test orchestrator
+    runs-on: ubuntu-latest
+    needs: [lint, validate-agents]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install pyyaml
+
+      - name: Make setup.sh executable
+        run: chmod +x setup.sh
+
+      - name: Setup project structure (no claude CLI required)
+        run: |
+          mkdir -p contracts tasks reports wiki vault db/migrations backend/src frontend/src
+
+      - name: Copy example requirements
+        run: cp examples/todo-app/requirements.md .
+
+      - name: Dry-run pipeline
+        run: |
+          python orchestrate.py --requirements requirements.md --dry-run

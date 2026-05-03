@@ -1,0 +1,70 @@
+# Output runtime del pipeline
+contracts/_compressed/
+tasks/_compressed/
+reports/_compressed/
+reports/_raw/
+pipeline.log
+
+# File generati durante i run (non committare output esempio)
+contracts/*.json
+tasks/task_plan.json
+tasks/test_manifest.json
+reports/*.json
+db/migrations/*.sql
+db/seed.sql
+backend/src/
+frontend/src/
+wiki/
+vault/
+
+# History dei retry (utile in debug, non in repo)
+_history/
+
+# Python
+*.pyc
+__pycache__/
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.npm/
+package-lock.json
+yarn.lock
+
+# Build output
+build/
+dist/
+target/
+.gradle/
+out/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Claude Code session data
+.claude/sessions/
+.claude/local/
+
+# Settings personali (mantieni il template)
+pipeline.yaml
+!pipeline.yaml.example
+
+# Test artifacts
+.coverage
+htmlcov/
+*.lcov

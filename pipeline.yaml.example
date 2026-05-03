@@ -1,0 +1,44 @@
+# Pipeline configuration — esempio
+# Uso: python orchestrate.py --requirements requirements.md --config pipeline.yaml
+
+# Numero massimo di retry dopo QA failure
+max_retries: 2
+
+# Budget USD massimo per ogni agente (None = illimitato)
+max_budget_usd: 5.00
+
+# Massimo turni agentici per agente
+max_turns: 30
+
+# Compressione contract files per agente (riduce token di input).
+# Mantenere true salvo che si stia debuggando perdita di contesto.
+compress: true
+
+# Timeout per fase (secondi)
+timeouts:
+  orchestrator: 240
+  db: 240
+  be: 900            # progetti grandi possono richiedere più tempo
+  fe: 600
+  review: 300
+  test: 600
+  security: 360
+  comments: 300
+  wiki: 300
+  memory: 300
+
+# Mapping agente → modello Claude
+# Valori: opus | sonnet | haiku
+# Strategia: Opus per ragionamento complesso, Sonnet per task tecnici,
+# Haiku per task meccanici (commenti, wiki).
+models:
+  orchestrator: opus    # analisi requisiti + retry context
+  db: sonnet            # schema design
+  be: sonnet            # codice backend
+  fe: sonnet            # codice frontend
+  review: sonnet        # static review con contract consistency
+  test: sonnet          # generazione + esecuzione test
+  security: sonnet      # OWASP audit
+  comments: haiku       # docstring/JSDoc meccanici
+  wiki: haiku           # markdown da template
+  memory: sonnet        # estrazione pattern e ADR (richiede ragionamento)
