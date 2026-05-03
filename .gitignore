@@ -56,9 +56,10 @@ Thumbs.db
 .env.*
 !.env.example
 
-# Claude Code session data
+# Claude Code session data (NB: .claude/agents/ va committato)
 .claude/sessions/
 .claude/local/
+.claude/settings.local.json
 
 # Settings personali (mantieni il template)
 pipeline.yaml

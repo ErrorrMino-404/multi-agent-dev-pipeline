@@ -1,94 +1,115 @@
 # Multi-Agent Dev Pipeline
 
-Questo repo contiene un sistema di orchestrazione di agenti per sviluppo
-software full-stack basato su Claude Code CLI.
+Questo repo è in transizione da una pipeline Python orchestrata a
+**subagents nativi di Claude Code**. Il vecchio pipeline è
+preservato in `legacy/` per riferimento; lo sviluppo nuovo va sui
+subagents in `.claude/agents/`.
+
+## Architettura attuale (subagents nativi)
+
+I subagents sono file Markdown con frontmatter YAML in
+`.claude/agents/`. L'agente principale di Claude Code li delega
+automaticamente in base al campo `description`, oppure puoi
+invocarli esplicitamente con `@nome-agente`.
+
+Subagents disponibili (fase 1 della conversione):
+
+| Subagent | Trigger | Scope |
+|----------|---------|-------|
+| `backend-expert` | Codice backend Kotlin/Spring o Python/FastAPI | `backend/` |
+| `frontend-expert` | Codice frontend React/Vue + TypeScript | `frontend/` |
+
+Da convertire (fase 2+):
+
+- `db-expert` — schema PostgreSQL, migration
+- `code-reviewer` — review statica
+- `security-expert` — audit OWASP, dipendenze
+- `test-expert` — scrittura ed esecuzione test
+- `docs-writer` — wiki Markdown, KDoc/docstring
+- `memory-keeper` — knowledge vault Obsidian
+
+## Come lavorare con i subagents
+
+### Invocazione automatica
+
+Il routing è guidato dal campo `description` nel frontmatter.
+Frasi come "MUST BE USED per..." e "Use proactively per..." aumentano
+la probabilità che l'agente principale deleghi senza che tu debba
+chiederlo esplicitamente.
+
+### Invocazione esplicita
+
+Nel prompt:
+
+```
+@backend-expert aggiungi endpoint POST /auth/register con bcrypt
+```
+
+### Context isolato
+
+Ogni subagent ha la sua finestra di contesto. Comunica con l'agente
+principale **via testo** (input nel prompt, output nel report finale).
+Niente file condivisi tipo `tasks/task_plan.json` o
+`contracts/api_contract.json`.
+
+### Output strutturato
+
+Ogni subagent deve restituire un report con:
+
+- Cosa ha creato/modificato (con path file)
+- Dipendenze aggiunte
+- Variabili d'ambiente richieste
+- Note per altri agenti (cosa il prossimo deve sapere)
+- Cosa ha lasciato fuori scope (e perché)
 
 ## Convenzioni di progetto
 
-### Contract files
-I file in `contracts/` e `tasks/` sono il SOLO meccanismo di comunicazione
-tra agenti. Ogni agente ha file di sua proprietà esclusiva:
+### Isolamento delle directory di output
 
-| Agente | Produce | Legge |
-|--------|---------|-------|
-| Orchestrator | `tasks/task_plan.json` | `requirements.md`, reports, vault context |
-| DB | `contracts/db_contract.json`, `db/migrations/*.sql` | `tasks/task_plan.json` |
-| BE | `contracts/api_contract.json`, `backend/src/**` | task_plan, db_contract |
-| FE | `frontend/src/**` | task_plan, api_contract |
-| Test Writer | `tasks/test_manifest.json`, `**/tests/**` | api_contract, codice, review |
-| Test Runner | `reports/test_report.json` | test_manifest |
-| Review | `reports/static_review.json` | tutti contracts + codice |
-| Security | `reports/security_audit.json` | tutti contracts + codice + dipendenze |
-| Comments | (modifica in-place codice) | review + test reports (build_ok) |
-| Wiki | `wiki/**` | tutti contracts + reports |
-| Memory | `vault/**` | tutti contracts + reports |
+Ogni agente scrive SOLO nella sua directory:
+
+- `db-expert` → `db/`
+- `backend-expert` → `backend/`
+- `frontend-expert` → `frontend/`
+- `docs-writer` → `wiki/`
+- `memory-keeper` → `vault/`
+
+Mai cross-write. Se un agente ha bisogno del lavoro di un altro,
+chiede all'agente principale di delegare.
+
+### Logging e sicurezza
+
+- MAI loggare password, token, API key, anche in stacktrace.
+  Usa `<redacted>` come placeholder.
+- Le password vanno hashate con bcrypt (mai SHA1/MD5/SHA256 raw).
+- Ogni endpoint REST deve avere logging strutturato all'inizio.
+- Niente secret hardcoded: tutto via env var.
 
 ### Scrittura atomica dei JSON
-Tutti i contract files devono essere scritti atomicamente per evitare
-race condition quando un altro agente li legge:
+
+Quando un agente produce file JSON che altri leggono (es. report,
+metadati), scrivili atomicamente per evitare race condition:
 
 ```bash
 # Sbagliato — il consumer può leggere file parziale
-echo "$json" > contracts/api_contract.json
+echo "$json" > reports/test_report.json
 
 # Giusto — atomic rename
-echo "$json" > contracts/api_contract.json.tmp
-mv contracts/api_contract.json.tmp contracts/api_contract.json
+echo "$json" > reports/test_report.json.tmp
+mv reports/test_report.json.tmp reports/test_report.json
 ```
 
-### Isolamento delle directory di output
-Ogni agente scrive SOLO nella sua directory:
-- DB → `db/`
-- BE → `backend/`
-- FE → `frontend/`
-- Wiki → `wiki/`
-- Memory → `vault/`
+## Roadmap conversione
 
-Mai cross-write. Se hai bisogno di leggere il lavoro di un altro agente,
-fallo via contract file, mai leggendo direttamente i suoi sorgenti
-(con eccezione di review e security che sono review-only).
+- [x] Fase 1: `backend-expert`, `frontend-expert`
+- [ ] Fase 2: `db-expert`
+- [ ] Fase 3: `code-reviewer`, `security-expert`
+- [ ] Fase 4: `test-expert`, `docs-writer`, `memory-keeper`
+- [ ] Fase 5: rimozione di `legacy/` se la nuova architettura regge
 
-### Logging e sicurezza
-- MAI loggare password, token, API key, anche in stacktrace
-- Usa `<redacted>` come placeholder
-- Le password vanno hashate con bcrypt (mai SHA1/MD5/SHA256 raw)
-- Ogni endpoint REST deve avere logging strutturato all'inizio
+## Legacy
 
-## Comandi utili
-
-```bash
-# Test del piano senza chiamare worker pesanti (gratis)
-python orchestrate.py --requirements requirements.md --dry-run
-
-# Primo run con safety net su costi
-python orchestrate.py --requirements requirements.md \
-    --max-budget-usd 3.00 \
-    --max-turns 20 \
-    --keep-compressed
-
-# Run con commit automatico per fase
-python orchestrate.py --requirements requirements.md --git
-
-# Solo struttura, niente test né security (debug rapido)
-python orchestrate.py --requirements requirements.md \
-    --skip-tests --skip-security
-```
-
-## Debug
-
-Se un run fallisce, controlla in ordine:
-1. `pipeline.log` — log strutturato del pipeline
-2. `reports/static_review.json` — errori bloccanti rilevati
-3. `reports/test_report.json` — test falliti
-4. `reports/security_audit.json` — vulnerabilità critical
-5. `contracts/_compressed/` (se `--keep-compressed`) — cosa è stato passato
-   ai singoli agenti
-
-## Trigger di retry
-
-Il pipeline rifà la FASE 0+1+2 quando in FASE 3:
-- `static_review.json` ha `build_ok: false` (errori bloccanti nel codice)
-- `test_report.json` ha `build_ok: false` (test falliti, NON skipped)
-- `security_audit.json` ha `build_ok: false` (almeno un finding critical)
-
-Default: max 2 retry. Configurabile con `--max-retries N`.
+Il vecchio pipeline orchestrato (`orchestrate.py` + `agents/*.md` +
+`contract_compressor.py`) vive in `legacy/`. Vedi
+[legacy/README.md](legacy/README.md) per come riusarlo se serve un
+benchmark o un fallback.
