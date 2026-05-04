@@ -29,6 +29,7 @@ gli altri agenti seguono.
 |----------|------|---------|
 | `backend-expert` | [.claude/agents/backend-expert.md](.claude/agents/backend-expert.md) | Codice backend Kotlin/Spring Boot o Python/FastAPI |
 | `frontend-expert` | [.claude/agents/frontend-expert.md](.claude/agents/frontend-expert.md) | Codice frontend React o Vue 3 con TypeScript |
+| `db-expert` | [.claude/agents/db-expert.md](.claude/agents/db-expert.md) | Schema PostgreSQL e migration SQL |
 
 I subagents si caricano all'avvio di Claude Code dalla root del repo.
 Vengono invocati automaticamente quando il loro `description` matcha,
@@ -51,7 +52,7 @@ oppure esplicitamente con `@nome-agente`.
 ## Roadmap conversione
 
 - [x] **Fase 1**: `backend-expert`, `frontend-expert`
-- [ ] **Fase 2**: `db-expert` (schema PostgreSQL, migration)
+- [x] **Fase 2**: `db-expert` (schema PostgreSQL, migration)
 - [ ] **Fase 3**: `code-reviewer`, `security-expert`
 - [ ] **Fase 4**: `test-expert`, `docs-writer`, `memory-keeper`
 - [ ] **Fase 5**: rimozione di `legacy/` quando la nuova architettura
@@ -99,7 +100,8 @@ multi-agent-dev-pipeline/
 ├── .claude/
 │   └── agents/                  # Subagents nativi (nuovo workflow)
 │       ├── backend-expert.md
-│       └── frontend-expert.md
+│       ├── frontend-expert.md
+│       └── db-expert.md
 ├── examples/
 │   └── todo-app/                # Esempio di requirements.md
 ├── legacy/                      # Vecchio pipeline orchestrato

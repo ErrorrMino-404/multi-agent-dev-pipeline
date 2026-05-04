@@ -12,16 +12,16 @@ I subagents sono file Markdown con frontmatter YAML in
 automaticamente in base al campo `description`, oppure puoi
 invocarli esplicitamente con `@nome-agente`.
 
-Subagents disponibili (fase 1 della conversione):
+Subagents disponibili:
 
 | Subagent | Trigger | Scope |
 |----------|---------|-------|
 | `backend-expert` | Codice backend Kotlin/Spring o Python/FastAPI | `backend/` |
 | `frontend-expert` | Codice frontend React/Vue + TypeScript | `frontend/` |
+| `db-expert` | Schema PostgreSQL, migration SQL, indici, FK | `db/` |
 
-Da convertire (fase 2+):
+Da convertire (fase 3+):
 
-- `db-expert` — schema PostgreSQL, migration
 - `code-reviewer` — review statica
 - `security-expert` — audit OWASP, dipendenze
 - `test-expert` — scrittura ed esecuzione test
@@ -102,7 +102,7 @@ mv reports/test_report.json.tmp reports/test_report.json
 ## Roadmap conversione
 
 - [x] Fase 1: `backend-expert`, `frontend-expert`
-- [ ] Fase 2: `db-expert`
+- [x] Fase 2: `db-expert`
 - [ ] Fase 3: `code-reviewer`, `security-expert`
 - [ ] Fase 4: `test-expert`, `docs-writer`, `memory-keeper`
 - [ ] Fase 5: rimozione di `legacy/` se la nuova architettura regge
