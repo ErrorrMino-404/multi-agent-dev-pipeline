@@ -25,11 +25,14 @@ gli altri agenti seguono.
 
 ## Subagents disponibili
 
-| Subagent | File | Trigger |
-|----------|------|---------|
-| `backend-expert` | [.claude/agents/backend-expert.md](.claude/agents/backend-expert.md) | Codice backend Kotlin/Spring Boot o Python/FastAPI |
-| `frontend-expert` | [.claude/agents/frontend-expert.md](.claude/agents/frontend-expert.md) | Codice frontend React o Vue 3 con TypeScript |
-| `db-expert` | [.claude/agents/db-expert.md](.claude/agents/db-expert.md) | Schema PostgreSQL e migration SQL |
+| Subagent | File | Trigger | Output |
+|----------|------|---------|--------|
+| `backend-expert` | [.claude/agents/backend-expert.md](.claude/agents/backend-expert.md) | Codice backend Kotlin/Spring Boot o Python/FastAPI | `backend/` |
+| `frontend-expert` | [.claude/agents/frontend-expert.md](.claude/agents/frontend-expert.md) | Codice frontend React o Vue 3 con TypeScript | `frontend/` |
+| `db-expert` | [.claude/agents/db-expert.md](.claude/agents/db-expert.md) | Schema PostgreSQL e migration SQL | `db/` |
+| `code-reviewer` | [.claude/agents/code-reviewer.md](.claude/agents/code-reviewer.md) | Review qualità codice, logging, gestione errori, validazione | report testuale |
+| `security-expert` | [.claude/agents/security-expert.md](.claude/agents/security-expert.md) | Audit OWASP, secret scanning, dipendenze vulnerabili | report testuale |
+| `memory-keeper` | [.claude/agents/memory-keeper.md](.claude/agents/memory-keeper.md) | Knowledge vault Obsidian (entità, ADR, pattern, run) | `vault/` |
 
 I subagents si caricano all'avvio di Claude Code dalla root del repo.
 Vengono invocati automaticamente quando il loro `description` matcha,
@@ -53,19 +56,114 @@ oppure esplicitamente con `@nome-agente`.
 
 - [x] **Fase 1**: `backend-expert`, `frontend-expert`
 - [x] **Fase 2**: `db-expert` (schema PostgreSQL, migration)
-- [ ] **Fase 3**: `code-reviewer`, `security-expert`
-- [ ] **Fase 4**: `test-expert`, `docs-writer`, `memory-keeper`
+- [x] **Fase 3**: `code-reviewer`, `security-expert`, `memory-keeper`
+- [ ] **Fase 4**: `test-expert`, `docs-writer`
 - [ ] **Fase 5**: rimozione di `legacy/` quando la nuova architettura
   è validata su 2-3 progetti reali
 
+## Prerequisiti
+
+### Base (sempre richiesti)
+
+| Requisito | Versione | Note |
+|-----------|----------|------|
+| [Claude Code](https://claude.com/claude-code) | latest | CLI o IDE extension |
+| Account Anthropic | Pro/Max o API key | I subagents girano su modello `sonnet` |
+| Git | 2.x+ | Per `git status` / `git diff` usati dai subagents |
+| Bash / sh | qualsiasi | Per i comandi di analisi (grep, find) |
+
+### Per `backend-expert`
+
+A seconda dello stack scelto nel tuo progetto:
+
+| Stack | Tool | Versione consigliata |
+|-------|------|----------------------|
+| Kotlin / Spring Boot | JDK | 17+ |
+| Kotlin / Spring Boot | Gradle o Maven | Gradle 8+ / Maven 3.9+ |
+| Python / FastAPI | Python | 3.10+ |
+| Python / FastAPI | pip / poetry / uv | a scelta |
+
+Il subagent **non installa** runtime per te: aspetta di trovare il
+tool già presente quando esplora la codebase. Se il task richiede
+una nuova dipendenza (es. `spring-boot-starter-security`), l'agente
+la aggiunge a `pom.xml` / `build.gradle.kts` / `pyproject.toml` /
+`requirements.txt` ma **non esegue `install`**: lo fai tu.
+
+### Per `frontend-expert`
+
+| Stack | Tool | Versione consigliata |
+|-------|------|----------------------|
+| React + TS / Vue 3 + TS | Node.js | 18 LTS o 20 LTS |
+| React + TS / Vue 3 + TS | npm / pnpm / yarn | a scelta |
+| React + TS / Vue 3 + TS | Vite | 5+ (default consigliato) |
+
+Stessa logica di `backend-expert`: aggiunge dipendenze a
+`package.json` ma non lancia `npm install`.
+
+### Per `db-expert`
+
+| Tool | Versione | Note |
+|------|----------|------|
+| PostgreSQL | 14+ | Solo se vuoi testare le migration localmente |
+| `psql` (client CLI) | 14+ | Opzionale, utile per validare gli SQL prodotti |
+
+Il subagent produce solo file `.sql` in `db/migrations/`.
+**Non si connette a un database**: l'esecuzione delle migration
+(via Flyway, Liquibase, `psql -f`, Alembic, ecc.) è responsabilità tua.
+
+Estensioni PostgreSQL usate dal default del subagent:
+- `pgcrypto` (per `gen_random_uuid()`)
+
+### Per `code-reviewer`
+
+Nessun tool aggiuntivo oltre alla base. Esegue solo `Read`, `Grep`,
+`Glob` e `Bash` non distruttivo (grep, git status, git diff).
+Non installa nulla, non modifica file.
+
+### Per `security-expert`
+
+| Tool | Quando serve | Installazione |
+|------|--------------|---------------|
+| `pip-audit` | progetti Python | `pip install pip-audit` |
+| `safety` | alternativa a pip-audit | `pip install safety` |
+| `npm` (con `npm audit`) | progetti JS/TS | incluso in Node.js |
+| `gradle` con plugin `org.owasp.dependencycheck` | progetti Gradle | configurato in `build.gradle.kts` |
+| `mvn` con `org.owasp:dependency-check-maven` | progetti Maven | configurato in `pom.xml` |
+
+Tutti questi tool sono **opzionali**: se non sono installati il
+subagent procede con secret scanning (basato su `grep`, sempre
+disponibile) e checklist statica OWASP, e documenta nel report
+quali scanner non erano disponibili.
+
+### Per `memory-keeper`
+
+| Tool | Quando serve |
+|------|--------------|
+| [Obsidian](https://obsidian.md/) | Solo per **leggere** il vault con UI grafica e wikilink. Non serve per generarlo. |
+
+Il subagent scrive solo file Markdown con frontmatter YAML in
+`vault/`. Sono leggibili anche con un editor di testo qualunque o
+con Claude stessa nella sessione successiva.
+
+### Setup minimo end-to-end
+
+```bash
+# Tool base
+node --version    # >= 18
+python --version  # >= 3.10 (se usi FastAPI)
+java --version    # >= 17 (se usi Spring Boot)
+psql --version    # >= 14 (se vuoi testare DB localmente)
+
+# Security scanner Python (opzionale ma consigliato)
+pip install pip-audit
+
+# Avvio
+git clone https://github.com/<your-username>/multi-agent-dev-pipeline.git
+cd multi-agent-dev-pipeline
+claude
+```
+
 ## Quickstart (nuovo workflow)
-
-### Prerequisiti
-
-- [Claude Code](https://claude.com/claude-code) installato
-- Account Anthropic (Pro/Max o API key)
-
-### Uso
 
 ```bash
 git clone https://github.com/<your-username>/multi-agent-dev-pipeline.git
@@ -101,7 +199,10 @@ multi-agent-dev-pipeline/
 │   └── agents/                  # Subagents nativi (nuovo workflow)
 │       ├── backend-expert.md
 │       ├── frontend-expert.md
-│       └── db-expert.md
+│       ├── db-expert.md
+│       ├── code-reviewer.md
+│       ├── security-expert.md
+│       └── memory-keeper.md
 ├── examples/
 │   └── todo-app/                # Esempio di requirements.md
 ├── legacy/                      # Vecchio pipeline orchestrato
@@ -117,8 +218,8 @@ multi-agent-dev-pipeline/
 └── LICENSE
 ```
 
-A runtime i subagents creano `backend/`, `frontend/` e (in fasi
-successive) `db/`, `wiki/`, `vault/`.
+A runtime i subagents creano `backend/`, `frontend/`, `db/`, `vault/`
+(e in fase 4 anche `wiki/`).
 
 ## Contribuire
 

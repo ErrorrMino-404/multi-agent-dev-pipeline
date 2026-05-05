@@ -19,14 +19,14 @@ Subagents disponibili:
 | `backend-expert` | Codice backend Kotlin/Spring o Python/FastAPI | `backend/` |
 | `frontend-expert` | Codice frontend React/Vue + TypeScript | `frontend/` |
 | `db-expert` | Schema PostgreSQL, migration SQL, indici, FK | `db/` |
+| `code-reviewer` | Review qualità codice, logging, gestione errori | read-only |
+| `security-expert` | Audit OWASP, secret scanning, dipendenze vulnerabili | read-only |
+| `memory-keeper` | Knowledge vault Obsidian (entità, ADR, pattern) | `vault/` |
 
-Da convertire (fase 3+):
+Da convertire (fase 4+):
 
-- `code-reviewer` — review statica
-- `security-expert` — audit OWASP, dipendenze
 - `test-expert` — scrittura ed esecuzione test
 - `docs-writer` — wiki Markdown, KDoc/docstring
-- `memory-keeper` — knowledge vault Obsidian
 
 ## Come lavorare con i subagents
 
@@ -71,8 +71,10 @@ Ogni agente scrive SOLO nella sua directory:
 - `db-expert` → `db/`
 - `backend-expert` → `backend/`
 - `frontend-expert` → `frontend/`
-- `docs-writer` → `wiki/`
+- `docs-writer` → `wiki/` (non ancora convertito)
 - `memory-keeper` → `vault/`
+- `code-reviewer`, `security-expert` → read-only, producono report
+  testuali nel turno di conversazione
 
 Mai cross-write. Se un agente ha bisogno del lavoro di un altro,
 chiede all'agente principale di delegare.
@@ -103,8 +105,8 @@ mv reports/test_report.json.tmp reports/test_report.json
 
 - [x] Fase 1: `backend-expert`, `frontend-expert`
 - [x] Fase 2: `db-expert`
-- [ ] Fase 3: `code-reviewer`, `security-expert`
-- [ ] Fase 4: `test-expert`, `docs-writer`, `memory-keeper`
+- [x] Fase 3: `code-reviewer`, `security-expert`, `memory-keeper`
+- [ ] Fase 4: `test-expert`, `docs-writer`
 - [ ] Fase 5: rimozione di `legacy/` se la nuova architettura regge
 
 ## Legacy

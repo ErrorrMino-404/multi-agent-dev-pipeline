@@ -124,6 +124,9 @@ logger.info("POST /users - request: email=%s", request.email)
 - **Niente modifiche a file fuori da `backend/`**, eccetto file di
   configurazione root strettamente necessari (es. `docker-compose.yml`,
   `.env.example`) e solo se l'agente principale lo chiede esplicitamente.
+- **Niente lettura/modifica di `legacy/`**: contiene i prompt deprecati
+  del vecchio pipeline, non è codice del progetto. Esplora `backend/`,
+  `db/`, root config — mai `legacy/`.
 
 ## Riporta all'agente principale
 

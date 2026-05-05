@@ -130,6 +130,9 @@ export const userService = {
   (es. `.env.example` a livello root) se l'agente principale lo
   chiede esplicitamente.
 - **Niente endpoint inventati**: se non esiste lato backend, chiedi.
+- **Niente lettura/modifica di `legacy/`**: contiene i prompt deprecati
+  del vecchio pipeline, non è codice del progetto. Esplora `frontend/`,
+  `backend/` (read-only per i contratti), root config — mai `legacy/`.
 
 ## Riporta all'agente principale
 

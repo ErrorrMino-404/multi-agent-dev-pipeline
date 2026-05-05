@@ -162,6 +162,10 @@ CREATE TRIGGER trg_users_updated_at
   task lo richiede esplicitamente, e devi avvertire l'agente
   principale (probabilmente impatta su `backend-expert`).
 - **Niente seed in produzione**: `db/seed.sql` è per dev/test.
+- **Niente lettura/modifica di `legacy/`**: contiene i prompt deprecati
+  del vecchio pipeline, non è codice del progetto. Esplora `db/`,
+  `backend/` (read-only per capire come l'app userà lo schema) — mai
+  `legacy/`.
 
 ## Riporta all'agente principale
 
