@@ -33,10 +33,30 @@ gli altri agenti seguono.
 | `code-reviewer` | [.claude/agents/code-reviewer.md](.claude/agents/code-reviewer.md) | Review qualità codice, logging, gestione errori, validazione | report testuale |
 | `security-expert` | [.claude/agents/security-expert.md](.claude/agents/security-expert.md) | Audit OWASP, secret scanning, dipendenze vulnerabili | report testuale |
 | `memory-keeper` | [.claude/agents/memory-keeper.md](.claude/agents/memory-keeper.md) | Knowledge vault Obsidian (entità, ADR, pattern, run) | `vault/` |
+| `docs-writer` | [.claude/agents/docs-writer.md](.claude/agents/docs-writer.md) | Wiki narrativa (API ref, schema, architettura, changelog) + KDoc/docstring/JSDoc inline | `wiki/` + commenti in sorgenti |
 
 I subagents si caricano all'avvio di Claude Code dalla root del repo.
 Vengono invocati automaticamente quando il loro `description` matcha,
 oppure esplicitamente con `@nome-agente`.
+
+### Il "secondo cervello": `memory-keeper` + `docs-writer`
+
+I due agent di documentazione lavorano in coppia:
+
+- **`memory-keeper` → `vault/`**: knowledge graph atomico in stile
+  Obsidian (entità, endpoint, ADR, pattern, run notes), pensato per
+  essere consultato dalle LLM in sessioni future. Note brevi, molto
+  linkate, frontmatter YAML, wikilink `[[...]]`.
+- **`docs-writer` → `wiki/` + commenti inline**: documentazione
+  narrativa human-readable (API reference, schema DB, architettura,
+  changelog) e KDoc/docstring/JSDoc nel codice sorgente. Pensato sia
+  per sviluppatori sia per LLM.
+
+I due **non duplicano** i contenuti, si **linkano**: la wiki rimanda
+al vault per i "perché profondi" (ADR, pattern), il vault può
+rimandare alla wiki per gli esempi d'uso. Insieme costituiscono la
+memoria a lungo termine ("wiki-LLM") consultabile in qualsiasi
+sessione futura.
 
 ### Esempio d'uso
 
@@ -57,8 +77,9 @@ oppure esplicitamente con `@nome-agente`.
 - [x] **Fase 1**: `backend-expert`, `frontend-expert`
 - [x] **Fase 2**: `db-expert` (schema PostgreSQL, migration)
 - [x] **Fase 3**: `code-reviewer`, `security-expert`, `memory-keeper`
-- [ ] **Fase 4**: `test-expert`, `docs-writer`
-- [ ] **Fase 5**: rimozione di `legacy/` quando la nuova architettura
+- [x] **Fase 4**: `docs-writer` (wiki + KDoc/docstring inline)
+- [ ] **Fase 5**: `test-expert` (scrittura ed esecuzione test)
+- [ ] **Fase 6**: rimozione di `legacy/` quando la nuova architettura
   è validata su 2-3 progetti reali
 
 ## Prerequisiti
@@ -145,6 +166,23 @@ Il subagent scrive solo file Markdown con frontmatter YAML in
 `vault/`. Sono leggibili anche con un editor di testo qualunque o
 con Claude stessa nella sessione successiva.
 
+### Per `docs-writer`
+
+Nessun tool aggiuntivo oltre alla base. Produce Markdown standard
+in `wiki/` (nessuna estensione Obsidian, niente wikilink — la wiki
+è leggibile ovunque renderizzi GitHub-flavored Markdown) e modifica
+i sorgenti aggiungendo solo commenti documentativi.
+
+| Tool | Quando serve |
+|------|--------------|
+| Visualizzatore Markdown (GitHub, VS Code preview, MkDocs, Docusaurus, ecc.) | Per leggere la wiki. Tutti gestiscono bene il formato prodotto. |
+| MkDocs / Docusaurus / Vitepress | Opzionale: se vuoi pubblicare la wiki come sito statico, basta puntare il generatore a `wiki/`. |
+
+Il subagent **modifica file in `backend/` e `frontend/`** ma solo per
+aggiungere KDoc/docstring/JSDoc — mai logica. Per verificarlo, il
+diff dopo il suo passaggio dovrebbe toccare solo righe di commento
+e blank line.
+
 ### Setup minimo end-to-end
 
 ```bash
@@ -202,7 +240,8 @@ multi-agent-dev-pipeline/
 │       ├── db-expert.md
 │       ├── code-reviewer.md
 │       ├── security-expert.md
-│       └── memory-keeper.md
+│       ├── memory-keeper.md
+│       └── docs-writer.md
 ├── examples/
 │   └── todo-app/                # Esempio di requirements.md
 ├── legacy/                      # Vecchio pipeline orchestrato
@@ -218,8 +257,8 @@ multi-agent-dev-pipeline/
 └── LICENSE
 ```
 
-A runtime i subagents creano `backend/`, `frontend/`, `db/`, `vault/`
-(e in fase 4 anche `wiki/`).
+A runtime i subagents creano `backend/`, `frontend/`, `db/`, `vault/`,
+`wiki/`.
 
 ## Contribuire
 

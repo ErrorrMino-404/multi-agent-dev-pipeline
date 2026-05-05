@@ -22,11 +22,16 @@ Subagents disponibili:
 | `code-reviewer` | Review qualità codice, logging, gestione errori | read-only |
 | `security-expert` | Audit OWASP, secret scanning, dipendenze vulnerabili | read-only |
 | `memory-keeper` | Knowledge vault Obsidian (entità, ADR, pattern) | `vault/` |
+| `docs-writer` | Wiki narrativa (API ref, schema, changelog) + KDoc/docstring/JSDoc inline | `wiki/` + commenti in `backend/`,`frontend/` |
 
-Da convertire (fase 4+):
+`memory-keeper` + `docs-writer` formano insieme il **"secondo
+cervello"** del progetto: vault (atomico, knowledge graph per LLM)
++ wiki (narrativo, leggibile per umani e LLM). Si linkano a vicenda,
+non si duplicano.
+
+Da convertire (fase 5):
 
 - `test-expert` — scrittura ed esecuzione test
-- `docs-writer` — wiki Markdown, KDoc/docstring
 
 ## Come lavorare con i subagents
 
@@ -71,7 +76,8 @@ Ogni agente scrive SOLO nella sua directory:
 - `db-expert` → `db/`
 - `backend-expert` → `backend/`
 - `frontend-expert` → `frontend/`
-- `docs-writer` → `wiki/` (non ancora convertito)
+- `docs-writer` → `wiki/` + commenti inline in `backend/`/`frontend/`
+  (modifiche solo a docstring/KDoc/JSDoc, mai logica)
 - `memory-keeper` → `vault/`
 - `code-reviewer`, `security-expert` → read-only, producono report
   testuali nel turno di conversazione
@@ -106,8 +112,9 @@ mv reports/test_report.json.tmp reports/test_report.json
 - [x] Fase 1: `backend-expert`, `frontend-expert`
 - [x] Fase 2: `db-expert`
 - [x] Fase 3: `code-reviewer`, `security-expert`, `memory-keeper`
-- [ ] Fase 4: `test-expert`, `docs-writer`
-- [ ] Fase 5: rimozione di `legacy/` se la nuova architettura regge
+- [x] Fase 4: `docs-writer`
+- [ ] Fase 5: `test-expert`
+- [ ] Fase 6: rimozione di `legacy/` se la nuova architettura regge
 
 ## Legacy
 
